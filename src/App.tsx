@@ -1,5 +1,6 @@
 import "./App.css";
-import DutchScorecard from "./DutchScorecard";
+import DutchScorecard from "./components/DutchScorecard";
+// import DutchScorecard from "./components/TEST";
 
 function App() {
   return (
