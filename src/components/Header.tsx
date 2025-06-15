@@ -3,9 +3,9 @@ import GameRules from "./GameRules";
 
 function Header() {
   return (
-    <header className="w-full bg-gray-900 text-gray-100 p-4 flex justify-between items-center shadow-lg z-10 font-inter mb-4">
+    <header className="w-full bg-gray-900 text-gray-100 p-4 flex justify-between items-center z-10 font-inter mb-4">
       <div className="flex-grow text-center">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-yellow-300 drop-shadow-lg break-words">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-yellow-300 break-words">
           Dutch Game Scorecard
         </h1>
       </div>

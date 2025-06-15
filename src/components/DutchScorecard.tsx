@@ -34,6 +34,7 @@ function DutchScorecard() {
   const scoreInputRefs = useRef<{
     [playerId: string]: HTMLInputElement | null;
   }>({});
+  const roundInfoRef = useRef<HTMLDivElement>(null);
 
   // Load data from localStorage on component mount
   useEffect(() => {
@@ -303,44 +304,54 @@ function DutchScorecard() {
   const isGameOver = currentRound >= JOKERS.length;
   const winners = getWinners();
 
-  // Add confetti effect when winners are shown
+  // Add confetti effect when winners are shown (scoped to Round Info Section)
   useEffect(() => {
-    if (isGameOver && winners.length > 0) {
-      const duration = 3 * 1000;
+    if (isGameOver && winners.length > 0 && roundInfoRef.current) {
+      const canvas = document.createElement("canvas");
+      canvas.style.position = "absolute";
+      canvas.style.top = "0";
+      canvas.style.left = "0";
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.style.pointerEvents = "none";
+      canvas.style.zIndex = "10";
+      roundInfoRef.current.appendChild(canvas);
+      const myConfetti = confetti.create(canvas, { resize: true, useWorker: true });
+      const duration = 4000; // 4 seconds for a smoother effect
       const animationEnd = Date.now() + duration;
-
-      const randomInRange = (min: number, max: number) => {
-        return Math.random() * (max - min) + min;
-      };
-
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
       const interval: number = window.setInterval(function () {
         const timeLeft = animationEnd - Date.now();
-
         if (timeLeft <= 0) {
-          return clearInterval(interval);
+          clearInterval(interval);
+          setTimeout(() => {
+            if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+          }, 500);
+          return;
         }
-
-        const particleCount = 50;
-
-        // Create celebrations from both sides
-        confetti({
+        const particleCount = 35; // fewer particles per burst for smoothness
+        myConfetti({
           particleCount,
-          startVelocity: randomInRange(25, 40),
+          startVelocity: randomInRange(12, 22), // lower velocity for smoother fall
           spread: 70,
+          ticks: 120, // longer time per particle
+          gravity: 0.7, // slightly slower fall
           origin: { x: randomInRange(0.1, 0.3), y: 0.5 },
           colors: ["#FFD700", "#FFA500", "#FF4500", "#9370DB", "#BA55D3"],
         });
-        confetti({
+        myConfetti({
           particleCount,
-          startVelocity: randomInRange(25, 40),
+          startVelocity: randomInRange(12, 22),
           spread: 70,
+          ticks: 120,
+          gravity: 0.7,
           origin: { x: randomInRange(0.7, 0.9), y: 0.5 },
           colors: ["#FFD700", "#FFA500", "#FF4500", "#9370DB", "#BA55D3"],
         });
-      }, 250);
-
+      }, 350); // slightly slower interval
       return () => {
         clearInterval(interval);
+        if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
       };
     }
   }, [isGameOver, winners.length]);
@@ -351,7 +362,7 @@ function DutchScorecard() {
       <main className="min-h-screen">
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 lg:gap-8 mb-4 sm:mb-6 lg:mb-8 w-full min-w-0">
           {/* Player Addition Section */}
-          <Card className="bg-gray-800/60 backdrop-blur-sm p-4 sm:p-4 lg:p-6 rounded-xl shadow-2xl border border-gray-600/50">
+          <Card className="flex-2 bg-gray-800/60 backdrop-blur-sm p-4 sm:p-4 lg:p-6 rounded-xl border border-gray-600/50">
             <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-4 sm:mb-5 text-purple-300 text-center sm:text-left">
               Add Players
             </h2>
@@ -411,75 +422,78 @@ function DutchScorecard() {
           </Card>
 
           {/* Round Info Section */}
-          <Card className="bg-gray-800 p-4 sm:p-4 lg:p-6 rounded-xl shadow-2xl border border-gray-600/50 text-center w-full min-w-0">
-            {isGameOver ? (
-              <>
-                <h2 className="text-3xl font-bold text-green-400">
-                  Game Over!
-                </h2>
-                {winners.length > 0 && (
-                  <h2 className="text-2xl sm:text-3xl font-bold text-green-400">
-                    Winner{winners.length > 1 ? "s" : ""}:{" "}
-                    <span className="text-3xl sm:text-4xl font-extrabold text-yellow-300 animate-pulse">
-                      {winners.join(" & ")}!
-                    </span>
+          <div ref={roundInfoRef} className="relative flex-1">
+            <Card className="bg-gray-800 p-4 sm:p-4 lg:p-6 rounded-xl border border-gray-600/50 text-center w-full min-w-0">
+              {isGameOver ? (
+                <>
+                  <h2 className="text-3xl font-bold text-green-400">
+                    Game Over!
                   </h2>
-                )}
-                <div className="flex justify-center mt-4 sm:mt-6 lg:mt-8">
-                  <Button
-                    onClick={resetGame}
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 sm:py-3 px-6 sm:px-8 rounded-md shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 text-sm sm:text-base"
-                    variant="destructive"
-                  >
-                    Reset Game
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <h2 className="text-3xl font-bold text-orange-400">
-                  Round {currentRound + 1} / {JOKERS.length}
-                </h2>
-                {currentJoker && (
-                  <h2 className="text-3xl font-bold text-orange-400 my-2">
-                    Joker is{" "}
-                    <span
-                      onClick={() => setShowJoker((prev) => !prev)}
-                      className={`inline-flex items-center cursor-pointer transition-transform transform hover:scale-110 ${
-                        !showJoker ? "align-middle" : ""
-                      }`}
-                      title="Click to toggle Joker visibility"
-                    >
-                      {showJoker ? (
-                        <span className="text-yellow-300">{currentJoker}</span>
-                      ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6 text-yellow-300"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                          />
-                        </svg>
-                      )}
-                    </span>
+                  {winners.length > 0 && (
+                    <h2 className="text-2xl sm:text-3xl font-bold text-green-400">
+                      Winner{winners.length > 1 ? "s" : ""}:{" "}
+                      <span className="text-3xl sm:text-4xl font-extrabold text-yellow-300 animate-pulse">
+                        {winners.join(" & ")}!
+                      </span>
+                    </h2>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h2 className="text-3xl font-bold text-orange-400">
+                    Round {currentRound + 1} / {JOKERS.length}
                   </h2>
-                )}
-              </>
-            )}
-          </Card>
+                  {currentJoker && (
+                    <h2 className="text-3xl font-bold text-orange-400 my-2">
+                      Joker is{" "}
+                      <span
+                        onClick={() => setShowJoker((prev) => !prev)}
+                        className={`inline-flex items-center cursor-pointer transition-transform transform hover:scale-110 ${
+                          !showJoker ? "align-middle" : ""
+                        }`}
+                        title="Click to toggle Joker visibility"
+                      >
+                        {showJoker ? (
+                          <span className="text-yellow-300">{currentJoker}</span>
+                        ) : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-6 w-6 text-yellow-300"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
+                          </svg>
+                        )}
+                      </span>
+                    </h2>
+                  )}
+                </>
+              )}
+
+              <div className="flex justify-center mt-4 sm:mt-6 lg:mt-8">
+                <Button
+                  onClick={resetGame}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 sm:py-3 px-6 sm:px-8 rounded-md shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 text-sm sm:text-base"
+                  variant="destructive"
+                >
+                  Reset Game
+                </Button>
+              </div>
+            </Card>
+          </div>
         </div>
 
         {/* Score Input Section */}
@@ -513,7 +527,7 @@ function DutchScorecard() {
 
         {/* Confirmation Modal */}
         <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-          <DialogContent className="bg-gray-800 rounded-xl p-8 shadow-2xl border border-gray-700 max-w-sm w-full text-center">
+          <DialogContent className="bg-gray-800 rounded-xl p-8 border border-gray-700 max-w-sm w-full text-center">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold mb-4 text-yellow-300">
                 {confirmAction ? "Confirm Action" : "Notice"}
