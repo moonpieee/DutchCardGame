@@ -4,9 +4,7 @@ import DutchScorecard from "./DutchScorecard";
 function App() {
   return (
     <>
-      <div className="card">
-        <DutchScorecard />
-      </div>
+      <DutchScorecard />
     </>
   );
 }

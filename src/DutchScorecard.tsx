@@ -43,40 +43,125 @@ function DutchScorecard() {
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [confirmationMessage, setConfirmationMessage] = useState<string>("");
   const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+  const [showJoker, setShowJoker] = useState<boolean>(false);
 
   const playerInputRef = useRef<HTMLInputElement>(null);
   const scoreInputRefs = useRef<{
     [playerId: string]: HTMLInputElement | null;
   }>({});
 
+  // Load data from localStorage on component mount
   useEffect(() => {
-    const savedPlayers = localStorage.getItem("dutch_players");
-    const savedScores = localStorage.getItem("dutch_scores");
-    const savedCurrentRound = localStorage.getItem("dutch_currentRound");
-    const savedCurrentRoundScores = localStorage.getItem(
-      "dutch_currentRoundScores"
-    );
-    if (savedPlayers) setPlayers(JSON.parse(savedPlayers));
-    if (savedScores) setScores(JSON.parse(savedScores));
-    if (savedCurrentRound) setCurrentRound(Number(savedCurrentRound));
-    if (savedCurrentRoundScores)
-      setCurrentRoundScores(JSON.parse(savedCurrentRoundScores));
-  }, []);
+    try {
+      // Debug log to check what's in localStorage
+      console.log("Checking localStorage on mount:", {
+        players: localStorage.getItem("dutch_players"),
+        scores: localStorage.getItem("dutch_scores"),
+        currentRound: localStorage.getItem("dutch_currentRound"),
+        currentRoundScores: localStorage.getItem("dutch_currentRoundScores"),
+      });
+
+      const savedPlayers = localStorage.getItem("dutch_players");
+      const savedScores = localStorage.getItem("dutch_scores");
+      const savedCurrentRound = localStorage.getItem("dutch_currentRound");
+      const savedCurrentRoundScores = localStorage.getItem(
+        "dutch_currentRoundScores"
+      );
+
+      let hasData = false;
+
+      if (savedPlayers) {
+        const parsedPlayers = JSON.parse(savedPlayers) as Player[];
+        if (Array.isArray(parsedPlayers) && parsedPlayers.length > 0) {
+          console.log("Loading saved players:", parsedPlayers);
+          setPlayers(parsedPlayers);
+          hasData = true;
+        }
+      }
+
+      if (savedScores) {
+        const parsedScores = JSON.parse(savedScores) as Scores;
+        if (parsedScores && Object.keys(parsedScores).length > 0) {
+          console.log("Loading saved scores:", parsedScores);
+          setScores(parsedScores);
+          hasData = true;
+        }
+      }
+
+      if (savedCurrentRound) {
+        const round = Number(savedCurrentRound);
+        if (!isNaN(round) && round >= 0 && round <= JOKERS.length) {
+          console.log("Loading saved round:", round);
+          setCurrentRound(round);
+          hasData = true;
+        }
+      }
+
+      if (savedCurrentRoundScores) {
+        const parsedCurrentRoundScores = JSON.parse(
+          savedCurrentRoundScores
+        ) as CurrentRoundScores;
+        if (
+          parsedCurrentRoundScores &&
+          Object.keys(parsedCurrentRoundScores).length > 0
+        ) {
+          console.log(
+            "Loading saved current round scores:",
+            parsedCurrentRoundScores
+          );
+          setCurrentRoundScores(parsedCurrentRoundScores);
+          hasData = true;
+        }
+      }
+
+      if (!hasData) {
+        console.log("No valid saved data found, starting fresh game");
+        // Initialize fresh game state
+        setPlayers([]);
+        setScores({});
+        setCurrentRound(0);
+        setCurrentRoundScores({});
+      }
+    } catch (error) {
+      console.error("Error loading game data from localStorage:", error);
+      // Reset to initial state if there's an error
+      setPlayers([]);
+      setScores({});
+      setCurrentRound(0);
+      setCurrentRoundScores({});
+    }
+  }, []); // Only run once on mount
+
+  // Ensure we save state changes to localStorage
+  useEffect(() => {
+    if (players.length > 0) {
+      console.log("Saving players to localStorage:", players);
+      localStorage.setItem("dutch_players", JSON.stringify(players));
+    }
+  }, [players]);
 
   useEffect(() => {
-    localStorage.setItem("dutch_players", JSON.stringify(players));
-  }, [players]);
-  useEffect(() => {
-    localStorage.setItem("dutch_scores", JSON.stringify(scores));
+    if (Object.keys(scores).length > 0) {
+      console.log("Saving scores to localStorage:", scores);
+      localStorage.setItem("dutch_scores", JSON.stringify(scores));
+    }
   }, [scores]);
+
   useEffect(() => {
     localStorage.setItem("dutch_currentRound", currentRound.toString());
   }, [currentRound]);
+
   useEffect(() => {
-    localStorage.setItem(
-      "dutch_currentRoundScores",
-      JSON.stringify(currentRoundScores)
-    );
+    if (Object.keys(currentRoundScores).length > 0) {
+      console.log(
+        "Saving current round scores to localStorage:",
+        currentRoundScores
+      );
+      localStorage.setItem(
+        "dutch_currentRoundScores",
+        JSON.stringify(currentRoundScores)
+      );
+    }
   }, [currentRoundScores]);
 
   const addPlayer = () => {
@@ -191,12 +276,14 @@ function DutchScorecard() {
       "Are you sure you want to reset the game? This will clear all players and scores."
     );
     setConfirmAction(() => () => {
+      console.log("Resetting game and clearing localStorage");
       setPlayers([]);
       setScores({});
       setCurrentRound(0);
       setNewPlayerName("");
       setCurrentRoundScores({});
       setShowConfirmation(false);
+      // Clear all game data from localStorage
       localStorage.removeItem("dutch_players");
       localStorage.removeItem("dutch_scores");
       localStorage.removeItem("dutch_currentRound");
@@ -227,15 +314,17 @@ function DutchScorecard() {
     "Vibha",
     "Amit",
     "Sabnam",
-    "Sujit",
-    "Sayo",
     "Sangam",
     "Riya",
+    "Sujit",
+    "Sayo",
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 font-inter p-4 sm:p-6 lg:p-8 rounded-lg shadow-xl">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
+      
+      <div className="max-w-[1440px] mx-auto text-gray-100 font-inter p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto"></div>
         <h1 className="text-4xl sm:text-5xl font-extrabold text-center mb-6 text-yellow-300 drop-shadow-lg">
           Dutch Game Scorecard
         </h1>
@@ -292,14 +381,53 @@ function DutchScorecard() {
             </div>
           </div>
 
-          <div className="bg-gray-800 p-6 rounded-xl shadow-inner border border-gray-700 text-center flex-1">
+          <div className="bg-gray-800 p-6 rounded-xl shadow-inner border border-gray-700 text-center flex flex-col align-items-center justify-evenly">
             {isGameOver ? (
               <h2 className="text-3xl font-bold text-green-400">Game Over!</h2>
             ) : (
-              <h2 className="text-3xl font-bold text-orange-400">
-                Round {currentRound + 1} / {JOKERS.length}: Joker is{" "}
-                <span className="text-yellow-300">{currentJoker}</span>
-              </h2>
+              <>
+                <h2 className="text-3xl font-bold text-orange-400">
+                  Round {currentRound + 1} / {JOKERS.length}
+                </h2>
+
+                {currentJoker && (
+                  <h2 className="text-3xl font-bold text-orange-400 my-2">
+                    Joker is{" "}
+                    <span
+                      onClick={() => setShowJoker((prev) => !prev)}
+                      className={`inline-flex items-center cursor-pointer transition-transform transform hover:scale-110 ${
+                        !showJoker ? "align-middle" : ""
+                      }`}
+                      title="Click to toggle Joker visibility"
+                    >
+                      {showJoker ? (
+                        <span className="text-yellow-300">{currentJoker}</span>
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-6 w-6 text-yellow-300"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                      )}
+                    </span>
+                  </h2>
+                )}
+              </>
             )}
           </div>
         </div>
